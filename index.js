@@ -39,6 +39,17 @@ async function run() {
         const userCollection = client.db('doctorsPortal').collection('users');
         const doctorCollection = client.db('doctorsPortal').collection('doctors');
 
+        const verifyAdmin = (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterAcct = await userCollection.findOne({ email: requester });
+            if (requesterAcct.role === 'admin') {
+                next()
+            }
+            else {
+                res.status(403).send({ message: 'Forbidden' });
+            }
+        }
+
         app.get('/service', async (req, res) => {
             const query = {};
             const cursor = serviceCollection.find(query).project({ name: 1 });
@@ -82,22 +93,14 @@ async function run() {
             res.send({ admin: isAdmin });
         });
 
-        app.put('/user/admin/:email', verifyJWT, async (req, res) => {
+        app.put('/user/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email;
-            const requester = req.decoded.email;
-            const requesterAcct = await userCollection.findOne({ email: requester });
-            if (requesterAcct.role === 'admin') {
-                const filter = { email: email };
-                const updateDoc = {
-                    $set: { role: 'admin' },
-                }
-                const result = await userCollection.updateOne(filter, updateDoc);
-                res.send(result);
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { role: 'admin' },
             }
-            else {
-                res.status(403).send({ message: 'Forbidden' })
-            }
-
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result);
         });
 
         app.put('/user/:email', async (req, res) => {
@@ -140,7 +143,7 @@ async function run() {
             res.send({ success: true, result });
         });
 
-        app.post('/doctor', async (req, res) => {
+        app.post('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
             const doctor = req.body;
             const result = await doctorCollection.insertOne(doctor);
             res.send(result);
