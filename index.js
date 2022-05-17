@@ -39,7 +39,7 @@ async function run() {
         const userCollection = client.db('doctorsPortal').collection('users');
         const doctorCollection = client.db('doctorsPortal').collection('doctors');
 
-        const verifyAdmin = (req, res, next) => {
+        const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
             const requesterAcct = await userCollection.findOne({ email: requester });
             if (requesterAcct.role === 'admin') {
@@ -104,8 +104,8 @@ async function run() {
         });
 
         app.put('/user/:email', async (req, res) => {
-            const user = req.body;
             const email = req.params.email;
+            const user = req.body;
             const filter = { email: email };
             const options = { upsert: true };
             const updateDoc = {
@@ -141,6 +141,11 @@ async function run() {
             }
             const result = await bookingCollection.insertOne(booking);
             res.send({ success: true, result });
+        });
+
+        app.get('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
+            const doctors = await doctorCollection.find().toArray();
+            res.send(doctors);
         });
 
         app.post('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
