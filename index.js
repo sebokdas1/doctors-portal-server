@@ -37,10 +37,11 @@ async function run() {
         const serviceCollection = client.db('doctorsPortal').collection('services');
         const bookingCollection = client.db('doctorsPortal').collection('bookings');
         const userCollection = client.db('doctorsPortal').collection('users');
+        const doctorCollection = client.db('doctorsPortal').collection('doctors');
 
         app.get('/service', async (req, res) => {
             const query = {};
-            const cursor = serviceCollection.find(query);
+            const cursor = serviceCollection.find(query).project({ name: 1 });
             const services = await cursor.toArray();
             res.send(services);
         });
@@ -138,6 +139,12 @@ async function run() {
             const result = await bookingCollection.insertOne(booking);
             res.send({ success: true, result });
         });
+
+        app.post('/doctor', async (req, res) => {
+            const doctor = req.body;
+            const result = await doctorCollection.insertOne(doctor);
+            res.send(result);
+        });
     }
     finally { }
 }
@@ -145,9 +152,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-    res.send('Hello Doctors World!')
-})
+    res.send('Hello Doctors World!');
+});
 
 app.listen(port, () => {
-    console.log(`Doctor app listening on port ${port}`)
-})
+    console.log(`Doctor app listening on port ${port}`);
+});
